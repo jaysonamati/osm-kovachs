@@ -1,0 +1,7 @@
+[package]
+name = "osm-kovachs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+osmpbf = "0.3.4"
