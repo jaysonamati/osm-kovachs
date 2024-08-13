@@ -86,8 +86,7 @@ fn count_everything(path: &std::path::Path) {
 }
 
 pub fn parse_all_to_medium(path: &std::path::Path) {
-    let start_time = SystemTime::now();
-    let reader = ElementReader::from_path(path).unwrap();
+    let _reader = ElementReader::from_path(path).unwrap();
     let mut indexed_reader = IndexedReader::from_path(path).unwrap();
     println!("Parsing!");
     let start_time = SystemTime::now();
@@ -112,16 +111,59 @@ pub fn parse_all_to_medium(path: &std::path::Path) {
                     // For each way we create a medium 
                     // and populate it with nodes
                     let mut way_medium = Medium::new();
-                    let mut way_locations = Vec::new();
+                    let mut way_one_way = false;
                     let mut med_positions = Vec::new();
-                    let _ = way.node_locations().map(|n| way_locations.push(n));
-                    for location in way_locations {
-                        let position = Position::from_way_node_location(location);
+                    let _ = way.node_locations().for_each(|n| {
+                        let position = Position::from_way_node_location(n);
                         med_positions.push(position);
-                    }
+                    });
+                    med_positions.push(Position { longitude: 0.0, latitude: 0.0 });
                     way_medium.medium_positions = med_positions;
-                    way_medium.medium_type = MediumType::Highway(StreetCategory::Residential);
+                    let mut street_category = Vec::new();
+                    let _ = way.tags().for_each(|(k,v)| {
+                        if k == "highway" {
+                            match v {
+                                "residential"    => street_category.push(StreetCategory::Residential),
+                                "service"        => street_category.push(StreetCategory::Service),
+                                "track"          => street_category.push(StreetCategory::Track),
+                                "footway"        => street_category.push(StreetCategory::Footway),
+                                "unclassified"   => street_category.push(StreetCategory::Unclassified),
+                                "path"           => street_category.push(StreetCategory::Path),
+                                "crossing"       => street_category.push(StreetCategory::Crossing),
+                                "tertiary"       => street_category.push(StreetCategory::Tertiary),
+                                "secondary"      => street_category.push(StreetCategory::Secondary),
+                                "primary"        => street_category.push(StreetCategory::Primary),
+                                "living_street"  => street_category.push(StreetCategory::LivingStreet),
+                                "cycleway"       => street_category.push(StreetCategory::Cycleway),
+                                "trunk"          => street_category.push(StreetCategory::Trunk),
+                                "motorway"       => street_category.push(StreetCategory::Motorway),
+                                "motorway_link"  => street_category.push(StreetCategory::MotorwayLink),
+                                "pedestrian"     => street_category.push(StreetCategory::Pedestrian),
+                                "trunk_link"     => street_category.push(StreetCategory::TrunkLink),
+                                "primary_link"   => street_category.push(StreetCategory::PrimaryLink),
+                                "secondary_link" => street_category.push(StreetCategory::SecondaryLink),
+                                "tertiary_link"  => street_category.push(StreetCategory::TertiaryLink),
+                                "road"           => street_category.push(StreetCategory::Road),
+                                _                => (),
+
+                            }
+                        }
+                        else if k == "oneway" {
+                            match v {
+                                "yes" => way_one_way = true,
+                                "no"  => way_one_way  = false,
+                                _     => (),
+                            }
+                        }
+                        else if k == "name" {
+                            match v {
+                                str => way_medium.medium_osm_name = Some(String::from(str))
+                            }
+                        }
+                    });
+                    way_medium.medium_type = MediumType::Highway(street_category);
                     way_medium.osm_id = Some(way.id());
+                    way_medium.is_one_way = way_one_way;
                     mediums.push(way_medium);
                 },
                 Element::Node(_node) => nodes += 1,
@@ -138,6 +180,7 @@ pub fn parse_all_to_medium(path: &std::path::Path) {
     println!("Finished counting in: {:#?}", duration);
     // Print result
     println!("ways:  {ways}\nnodes: {nodes}");
-    println!("Created mediums: {:#?}", mediums.len())
+    println!("Created mediums: {:#?}", mediums.len());
+    println!("Random medium type: {:#?}", mediums.get(0..50).unwrap());
 
 }

@@ -24,3 +24,8 @@ Finished counting in: 457.688514105s
 ways:  670903
 nodes: 12528560
 Created mediums: 670903
+
+## Things to note and think about
+
+- Check out quadTrees for data processing and making associations between data
+- There is an issue with getting nodes in a way, and we have to figure a way around this, or maybe the data is just not there.
