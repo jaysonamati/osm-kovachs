@@ -1,6 +1,7 @@
-use osmpbf::WayNodeLocation;
+use osmpbf::{DenseNode, Node, WayNodeLocation};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Position {
     pub longitude: f64,
     pub latitude: f64,
@@ -10,9 +11,30 @@ impl Position {
     pub fn from_way_node_location(way_node: WayNodeLocation) -> Position {
         Position { longitude: way_node.lon(), latitude: way_node.lat() }
     }
+
+    pub fn from_osm_node(osm_node: &OsmNode) -> Position {
+        Position { longitude: osm_node.longitude, latitude: osm_node.latitude }
+    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct OsmNode {
+    pub osm_id : i64,
+    pub longitude: f64,
+    pub latitude: f64,
+}
+
+impl OsmNode {
+    pub fn from_node(node: Node) -> OsmNode {
+        OsmNode { osm_id: node.id(), longitude: node.lon(), latitude: node.lat() }
+    }
+
+    pub fn from_dense_node(d_node: DenseNode) -> OsmNode{
+        OsmNode { osm_id: d_node.id, longitude: d_node.lon(), latitude: d_node.lat() }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum MediumType{
    Default,
    Highway (Vec<StreetCategory>),
@@ -22,7 +44,7 @@ pub enum MediumType{
    SpaceTrajectory 
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum StreetCategory {
     /// High capacity highways designed to safely carry fast motor traffic.
     Motorway,
@@ -70,12 +92,13 @@ pub enum StreetCategory {
     Default,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Medium {
     pub osm_id: Option<i64>,
     pub medium_osm_name: Option<String>,
     pub medium_type: MediumType,
     pub is_one_way: bool,
+    pub osm_node_refs: Vec<i64>,
     pub medium_positions: Vec<Position>
 }
 
@@ -86,6 +109,7 @@ impl Medium {
             medium_osm_name: None, 
             medium_type: MediumType::Default,
             is_one_way: false,
+            osm_node_refs: Vec::new(),
             medium_positions: Vec::new() 
         }
     }

@@ -2,6 +2,10 @@
 name = "osm-kovachs"
 version = "0.1.0"
 edition = "2021"
+authors = ["jaysonamati@gmail.com"]
 
 [dependencies]
 osmpbf = "0.3.4"
+rayon = "1.10.0"
+serde = {version = "1.0.207", features = ["derive"]}
+serde_json = {version = "1.0"}
