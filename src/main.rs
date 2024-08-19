@@ -1,9 +1,9 @@
 pub mod types;
 
-use std::{fmt::Debug, fs::File, io::{BufWriter, Write}, time::SystemTime, vec};
+use std::{fmt::Debug, fs::File, io::{BufWriter, Write}, sync::{Arc, Mutex}, time::SystemTime, vec};
 
 use osmpbf::{Element, ElementReader, IndexedReader};
-use rayon::iter::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelExtend, ParallelIterator};
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelExtend, ParallelIterator};
 use types::medium::{Medium, MediumType, OsmNode, Position, StreetCategory};
 
 fn main() {
@@ -248,9 +248,12 @@ fn par_parse_to_medium(path: &std::path::Path, out_file: &std::path::Path) {
             let end_time = SystemTime::now();
             let duration = end_time.duration_since(start_time).expect("Clock may have gone backwards");
             let start_populating_med_pos = SystemTime::now();
+            let medium_size = mediums.len();
             let node_densities_total = node_densities.len();
-            nodes.extend(node_densities);
-            let mut nodes_clone = nodes.clone();
+            nodes.par_extend(node_densities);
+            // let mut nodes_clone = nodes.clone();
+            let mut mediums_count = Arc::new(Mutex::new(0));
+            let medium_count_down = Arc::new(Mutex::new(medium_size));
             // nodes.par_iter().for_each(|n|{
             //     let _ = mediums.iter_mut().for_each(| m|{
             //         m.osm_node_refs.iter().for_each(|re|{
@@ -261,7 +264,7 @@ fn par_parse_to_medium(path: &std::path::Path, out_file: &std::path::Path) {
             //         })
             //     });
             // });
-            let _ = mediums.par_iter_mut().for_each(|m|{
+            let _ = mediums.par_iter_mut().enumerate().for_each(|(i,m)|{
                 let mut positions = Vec::new();
                 if m.medium_osm_name.is_some() {
                     m.osm_node_refs.iter().for_each(|re|{    
@@ -282,10 +285,28 @@ fn par_parse_to_medium(path: &std::path::Path, out_file: &std::path::Path) {
                                 let pos = Position::from_osm_node(nn);
                                 // println!("Created position {:#?}", pos);
                                 positions.push(pos);
+                                // m.medium_positions.push(pos);
                             }
                         }
                     });
+                    match mediums_count.lock() {
+                        Err (_) => (),
+                        Ok(mut mc) => {
+                            *mc += 1;
+                        }
+                    };
+                    // println!("Added positions {:#?} to medium {:#?}", positions, m);
                     m.medium_positions = positions;
+                }
+                match medium_count_down.lock() {
+                    Err(_) => (),
+                    Ok(mut mcd) => {
+                        *mcd -= 1;
+                    }
+                }
+                if i % 1000 == 0 {
+                    eprintln!("Medium with pos count: {:#?}", mediums_count);
+                    eprintln!("Mediums left: {:#?} after {:#?}", medium_count_down, SystemTime::now().duration_since(start_populating_med_pos).expect("Bad time!"));
                 }
             });
             let end_populating_med_pos = SystemTime::now();
