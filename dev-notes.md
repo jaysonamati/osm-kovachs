@@ -29,3 +29,13 @@ Created mediums: 670903
 
 - Check out quadTrees for data processing and making associations between data
 - There is an issue with getting nodes in a way, and we have to figure a way around this, or maybe the data is just not there.
+- Processing the giant data to the json format we need takes a lot of time, think of optimizations to curb the excessive computations.
+- For instance consider creating the mediums with location while doing the `par_map_reduce`
+- We should split the task of populating medium positions into two:
+  - First we create the mediums with only node refs
+  - We par_map_reduce again with only the nodes and then add the relevant nodes to the medium with the same refs/
+
+## Questions to answer
+
+- How fast is it to get node information given a node id?
+- So we don't have to populate mediums with lats & long

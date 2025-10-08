@@ -9,3 +9,11 @@ osmpbf = "0.3.4"
 rayon = "1.10.0"
 serde = {version = "1.0.207", features = ["derive"]}
 serde_json = {version = "1.0"}
+linya = "0.3.1"
+
+[dev-dependencies]
+criterion = "0.3"
+
+# [[bench]]
+#name = "my_benchmark"
+# harness = false
